@@ -66,6 +66,13 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    lint {
+        // The release-only "lintVital" pass is memory-heavy and unnecessary for
+        // a personal sideload build — it was OOM-crashing the Gradle daemon.
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
 
 dependencies {
