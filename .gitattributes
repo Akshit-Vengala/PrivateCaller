@@ -1,0 +1,23 @@
+# Normalize line endings: LF in the repo, auto on checkout.
+* text=auto
+
+# Scripts must stay LF / CRLF respectively.
+*.sh        text eol=lf
+gradlew     text eol=lf
+*.bat       text eol=crlf
+
+# Kotlin / Gradle / XML are text.
+*.kt        text
+*.kts       text
+*.xml       text
+*.pro       text
+*.md        text
+
+# Binary assets — never diff or convert.
+*.png       binary
+*.jpg       binary
+*.webp      binary
+*.jar       binary
+*.keystore  binary
+*.jks       binary
+*.apk       binary

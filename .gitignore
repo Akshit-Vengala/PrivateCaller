@@ -1,0 +1,32 @@
+# Built by Android Studio / Gradle
+*.iml
+.gradle/
+/build/
+/app/build/
+/captures/
+release/
+
+# Local config — never commit (contains your SDK path)
+local.properties
+
+# IDE
+/.idea/
+.kotlin/
+*.hprof
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keystores / signing — never commit secrets
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# Logs
+*.log

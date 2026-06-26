@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PrivateCaller</string>
+    <string name="smart_unblock_listener_label">PrivateCaller SmartUnblock</string>
+
+    <!-- Default message reported for a rejected call -->
+    <string name="default_block_reason">Blocked for privacy</string>
+
+    <!-- SmartUnblock foreground notification -->
+    <string name="unblock_channel_name">SmartUnblock windows</string>
+    <string name="unblock_active_title">All calls temporarily allowed</string>
+    <string name="unblock_active_text">Triggered by %1$s · ends %2$s</string>
+</resources>
