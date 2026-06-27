@@ -71,6 +71,8 @@ private fun AppRoot(factory: ViewModelFactory) {
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val perms = buildList {
             add(Manifest.permission.READ_CONTACTS)
+            add(Manifest.permission.READ_CALL_LOG)
+            add(Manifest.permission.READ_PHONE_STATE)
             add(Manifest.permission.CALL_PHONE)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.POST_NOTIFICATIONS)

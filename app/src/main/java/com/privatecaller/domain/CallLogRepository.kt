@@ -42,16 +42,25 @@ class CallLogRepository(private val context: Context) {
             PackageManager.PERMISSION_GRANTED
 
     fun observe(limit: Int = 500): Flow<List<CallLogEntry>> = callbackFlow {
+        // Without READ_CALL_LOG, even registering an observer on the provider
+        // throws SecurityException — emit empty and don't touch it.
+        if (!hasPermission()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
                 trySend(query(limit))
             }
         }
-        context.contentResolver.registerContentObserver(
-            CallLog.Calls.CONTENT_URI, true, observer,
-        )
+        runCatching {
+            context.contentResolver.registerContentObserver(
+                CallLog.Calls.CONTENT_URI, true, observer,
+            )
+        }
         trySend(query(limit))
-        awaitClose { context.contentResolver.unregisterContentObserver(observer) }
+        awaitClose { runCatching { context.contentResolver.unregisterContentObserver(observer) } }
     }.flowOn(Dispatchers.IO)
 
     private fun query(limit: Int): List<CallLogEntry> {
@@ -66,13 +75,21 @@ class CallLogRepository(private val context: Context) {
             CallLog.Calls.DURATION,
         )
         val out = ArrayList<CallLogEntry>()
-        context.contentResolver.query(
-            CallLog.Calls.CONTENT_URI,
-            cols,
-            null,
-            null,
-            "${CallLog.Calls.DATE} DESC LIMIT $limit",
-        )?.use { c ->
+        // Pass the row limit as the provider's URI query-param, NOT as "LIMIT n"
+        // in the sort order — some OEM providers reject SQL tokens in sortOrder
+        // ("Invalid token LIMIT"). Wrapped so a provider quirk can't crash us.
+        val uri = CallLog.Calls.CONTENT_URI.buildUpon()
+            .appendQueryParameter(CallLog.Calls.LIMIT_PARAM_KEY, limit.toString())
+            .build()
+        runCatching {
+            context.contentResolver.query(
+                uri,
+                cols,
+                null,
+                null,
+                "${CallLog.Calls.DATE} DESC",
+            )
+        }.getOrNull()?.use { c ->
             val iId = c.getColumnIndexOrThrow(CallLog.Calls._ID)
             val iNum = c.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
             val iName = c.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
