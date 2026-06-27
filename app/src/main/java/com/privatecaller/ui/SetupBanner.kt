@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
+import com.privatecaller.edition.Edition
 
 /**
  * Shows actionable cards for the two pieces of setup PrivateCaller needs:
@@ -37,7 +38,9 @@ fun SetupBanner(modifier: Modifier = Modifier) {
 
     var dialerHeld by remember { mutableStateOf(Setup.isDialerRoleHeld(context)) }
     var roleHeld by remember { mutableStateOf(Setup.isScreeningRoleHeld(context)) }
-    var notifAccess by remember { mutableStateOf(Setup.isNotificationAccessGranted(context)) }
+    // Notification access only matters for SmartUnblock (the "full" edition);
+    // the playstore Edition reports it granted so this card never appears.
+    var notifAccess by remember { mutableStateOf(Edition.isNotificationAccessGranted(context)) }
 
     // Roles MUST be requested for a result, otherwise the system dialog
     // silently never appears.
@@ -59,7 +62,7 @@ fun SetupBanner(modifier: Modifier = Modifier) {
             if (event == Lifecycle.Event.ON_RESUME) {
                 dialerHeld = Setup.isDialerRoleHeld(context)
                 roleHeld = Setup.isScreeningRoleHeld(context)
-                notifAccess = Setup.isNotificationAccessGranted(context)
+                notifAccess = Edition.isNotificationAccessGranted(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -118,7 +121,7 @@ fun SetupBanner(modifier: Modifier = Modifier) {
                 title = "Allow notification access",
                 body = "Lets SmartUnblock detect delivery & ride notifications and open call windows.",
                 action = "Grant",
-            ) { context.startActivity(Setup.notificationAccessIntent()) }
+            ) { Edition.openNotificationAccessSettings(context) }
         }
     }
 }

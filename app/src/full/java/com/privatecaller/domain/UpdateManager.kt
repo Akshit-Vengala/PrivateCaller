@@ -51,17 +51,23 @@ class UpdateManager(private val context: Context) {
             val notes = json.optString("body").trim()
             val pageUrl = json.optString("html_url")
 
+            // The updater only ships in the "full" edition, so it must fetch the
+            // FULL apk — never the playstore one if both are attached. Prefer an
+            // asset whose name contains "full"; fall back to the first .apk for
+            // releases that attach a single, generically-named APK.
             var apkUrl: String? = null
             var apkSize = 0L
             val assets = json.optJSONArray("assets")
             if (assets != null) {
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    if (asset.getString("name").endsWith(".apk", ignoreCase = true)) {
-                        apkUrl = asset.getString("browser_download_url")
-                        apkSize = asset.optLong("size")
-                        break
-                    }
+                val apks = (0 until assets.length())
+                    .map { assets.getJSONObject(it) }
+                    .filter { it.getString("name").endsWith(".apk", ignoreCase = true) }
+                val chosen = apks.firstOrNull {
+                    it.getString("name").contains("full", ignoreCase = true)
+                } ?: apks.firstOrNull()
+                if (chosen != null) {
+                    apkUrl = chosen.getString("browser_download_url")
+                    apkSize = chosen.optLong("size")
                 }
             }
 

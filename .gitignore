@@ -6,6 +6,9 @@
 /captures/
 release/
 
+# Built APKs staged for GitHub Releases — upload manually, don't commit
+/release-assets/
+
 # Local config — never commit (contains your SDK path)
 local.properties
 

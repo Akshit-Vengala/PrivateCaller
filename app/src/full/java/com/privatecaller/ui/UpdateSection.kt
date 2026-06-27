@@ -28,9 +28,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.privatecaller.BuildConfig
-import com.privatecaller.PrivateCallerApp
 import com.privatecaller.domain.ReleaseInfo
 import com.privatecaller.domain.UpdateCheck
+import com.privatecaller.domain.UpdateManager
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -53,7 +53,7 @@ private sealed interface UpdateUi {
 @Composable
 fun UpdateSection(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val updater = remember { PrivateCallerApp.container(context).updateManager }
+    val updater = remember { UpdateManager(context) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
 

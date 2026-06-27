@@ -15,9 +15,13 @@
     <!-- Foreground notification for an active SmartUnblock window -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- In-app updater: fetch releases from GitHub and install the APK -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!--
+        SmartUnblock (notification listener) and the in-app updater
+        (INTERNET + REQUEST_INSTALL_PACKAGES + FileProvider) are declared only
+        in the "full" flavor: app/src/full/AndroidManifest.xml. The "playstore"
+        flavor intentionally omits them so it carries none of the permissions
+        that get the app flagged.
+    -->
 
     <application
         android:name=".PrivateCallerApp"
@@ -117,27 +121,11 @@
             </intent-filter>
         </service>
 
-        <!-- Shares the downloaded update APK with the system installer. -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.updates"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-
-        <!-- Reads notifications from delivery/ride apps to open SmartUnblock windows. -->
-        <service
-            android:name=".service.SmartUnblockNotificationListener"
-            android:exported="true"
-            android:label="@string/smart_unblock_listener_label"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
+        <!--
+            The FileProvider (update APK) and the SmartUnblock notification
+            listener service are declared only in the "full" flavor:
+            app/src/full/AndroidManifest.xml.
+        -->
 
     </application>
 

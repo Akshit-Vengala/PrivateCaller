@@ -24,7 +24,7 @@ data class ScreenDecision(
  */
 class CallScreener(
     private val contactLookup: ContactLookup,
-    private val smartUnblock: SmartUnblockManager,
+    private val unblock: UnblockGate,
     private val blockList: BlockListManager,
     private val settingsStore: SettingsStore,
     private val screenedCallDao: ScreenedCallDao,
@@ -57,8 +57,8 @@ class CallScreener(
             )
         }
 
-        if (settings.smartUnblockEnabled && smartUnblock.isUnblockActive()) {
-            val label = smartUnblock.activeWindow()?.triggerLabel
+        if (settings.smartUnblockEnabled && unblock.isUnblockActive()) {
+            val label = unblock.activeLabel()
             return ScreenDecision(
                 allow = true,
                 outcome = ScreenOutcome.ALLOWED_UNBLOCK,

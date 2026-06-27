@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    "full" edition extras, merged on top of the main manifest:
+    SmartUnblock (notification listener) + in-app GitHub updater
+    (INTERNET, REQUEST_INSTALL_PACKAGES, FileProvider). These are the features
+    that make a sideloaded build get flagged, so the "playstore" flavor omits
+    them by simply not having this manifest.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- In-app updater: fetch releases from GitHub and install the APK -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+
+        <!-- Shares the downloaded update APK with the system installer. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Reads notifications from delivery/ride apps to open SmartUnblock windows. -->
+        <service
+            android:name=".service.SmartUnblockNotificationListener"
+            android:exported="true"
+            android:label="@string/smart_unblock_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+    </application>
+
+</manifest>

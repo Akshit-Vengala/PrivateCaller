@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.privatecaller.domain.PhoneFormat
+import com.privatecaller.edition.Edition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,13 +88,9 @@ fun SettingsScreen(viewModel: SettingsViewModel, modifier: Modifier = Modifier) 
                     )
                 }
             }
-            HorizontalDivider()
-            SwitchRow(
-                title = "SmartUnblock",
-                subtitle = "Auto-allow unknown calls when delivery/ride apps notify you",
-                checked = settings.smartUnblockEnabled,
-                onChange = viewModel::setSmartUnblock,
-            )
+            // SmartUnblock toggle — only present in the "full" edition.
+            Edition.SmartUnblockSetting(viewModel)
+
             HorizontalDivider()
             SwitchRow(
                 title = "Log blocked calls",
@@ -167,8 +164,8 @@ fun SettingsScreen(viewModel: SettingsViewModel, modifier: Modifier = Modifier) 
                 }
             }
 
-            HorizontalDivider()
-            UpdateSection()
+            // In-app updater section — only present in the "full" edition.
+            Edition.UpdaterSetting()
         }
     }
 
@@ -204,7 +201,7 @@ private fun AddBlockDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
 }
 
 @Composable
-private fun SwitchRow(
+internal fun SwitchRow(
     title: String,
     subtitle: String,
     checked: Boolean,

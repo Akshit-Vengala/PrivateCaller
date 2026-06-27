@@ -2,10 +2,9 @@ package com.privatecaller
 
 import android.app.Activity
 import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.os.Bundle
+import com.privatecaller.edition.Edition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,11 +20,8 @@ class PrivateCallerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        createUnblockChannel()
-        appScope.launch {
-            container.seedDefaultMonitoredAppsIfEmpty()
-            container.smartUnblock.purgeOld()
-        }
+        // SmartUnblock channel/seed/purge happen only in the "full" edition.
+        Edition.onAppCreate(this, container, appScope)
         registerActivityLifecycleCallbacks(IconReconciler())
     }
 
@@ -57,15 +53,6 @@ class PrivateCallerApp : Application() {
         override fun onActivityPaused(activity: Activity) {}
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
         override fun onActivityDestroyed(activity: Activity) {}
-    }
-
-    private fun createUnblockChannel() {
-        val channel = NotificationChannel(
-            UNBLOCK_CHANNEL_ID,
-            getString(R.string.unblock_channel_name),
-            NotificationManager.IMPORTANCE_LOW,
-        )
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
     companion object {

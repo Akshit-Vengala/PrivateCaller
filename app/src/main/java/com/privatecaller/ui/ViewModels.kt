@@ -6,14 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.privatecaller.AppContainer
 import com.privatecaller.data.db.BlockedNumber
 import com.privatecaller.data.db.ContactSimPref
-import com.privatecaller.data.db.MonitoredApp
-import com.privatecaller.data.db.UnblockWindow
 import com.privatecaller.data.prefs.AppSettings
 import com.privatecaller.domain.CallLogEntry
 import com.privatecaller.domain.ContactItem
 import com.privatecaller.domain.NumberMatch
 import com.privatecaller.domain.SimSlot
-import com.privatecaller.domain.SmartUnblockManager
 import com.privatecaller.data.prefs.SettingsStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,8 +27,6 @@ class ViewModelFactory(private val container: AppContainer) : ViewModelProvider.
             RecentsViewModel(container) as T
         modelClass.isAssignableFrom(DialerViewModel::class.java) ->
             DialerViewModel(container) as T
-        modelClass.isAssignableFrom(SmartUnblockViewModel::class.java) ->
-            SmartUnblockViewModel(container) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
             SettingsViewModel(container) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
@@ -82,36 +77,6 @@ class DialerViewModel(container: AppContainer) : ViewModel() {
     fun refreshContacts() = viewModelScope.launch {
         _contacts.value = contactsRepo.loadAll()
     }
-}
-
-class SmartUnblockViewModel(container: AppContainer) : ViewModel() {
-    private val dao = container.monitoredAppDao
-    private val manager: SmartUnblockManager = container.smartUnblock
-    private val now = System::currentTimeMillis
-
-    val monitoredApps: StateFlow<List<MonitoredApp>> =
-        dao.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val activeWindows: StateFlow<List<UnblockWindow>> =
-        container.unblockWindowDao.observeActive(now())
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun setEnabled(app: MonitoredApp, enabled: Boolean) =
-        viewModelScope.launch { dao.upsert(app.copy(enabled = enabled)) }
-
-    fun setDuration(app: MonitoredApp, minutes: Int) =
-        viewModelScope.launch { dao.upsert(app.copy(unblockMinutes = minutes)) }
-
-    fun addApp(packageName: String, label: String, minutes: Int) =
-        viewModelScope.launch {
-            dao.upsert(MonitoredApp(packageName, label, enabled = true, unblockMinutes = minutes))
-        }
-
-    fun removeApp(app: MonitoredApp) = viewModelScope.launch { dao.delete(app.packageName) }
-
-    fun openManualWindow(minutes: Int) = viewModelScope.launch { manager.openManualWindow(minutes) }
-
-    fun cancelAll() = viewModelScope.launch { manager.cancelAll() }
 }
 
 class SettingsViewModel(container: AppContainer) : ViewModel() {

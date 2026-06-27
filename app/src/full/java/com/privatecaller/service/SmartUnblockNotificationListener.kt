@@ -3,6 +3,7 @@ package com.privatecaller.service
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.privatecaller.PrivateCallerApp
+import com.privatecaller.domain.SmartUnblockManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,7 +27,8 @@ class SmartUnblockNotificationListener : NotificationListenerService() {
         val container = PrivateCallerApp.container(this)
         scope.launch {
             if (!container.settingsStore.current().smartUnblockEnabled) return@launch
-            val window = container.smartUnblock.onNotificationFrom(pkg) ?: return@launch
+            val manager = SmartUnblockManager(container.monitoredAppDao, container.unblockWindowDao)
+            val window = manager.onNotificationFrom(pkg) ?: return@launch
             UnblockNotifier.show(this@SmartUnblockNotificationListener, window)
         }
     }

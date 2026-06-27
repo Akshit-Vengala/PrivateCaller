@@ -1,11 +1,9 @@
 package com.privatecaller.ui
 
 import android.app.role.RoleManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
-import com.privatecaller.service.SmartUnblockNotificationListener
 
 /** Helpers for the one-time permissions / default-app setup the app needs. */
 object Setup {
@@ -37,21 +35,6 @@ object Setup {
         if (!rm.isRoleAvailable(RoleManager.ROLE_DIALER)) return null
         return rm.createRequestRoleIntent(RoleManager.ROLE_DIALER)
     }
-
-    /** True if the user has granted notification-listener access (for SmartUnblock). */
-    fun isNotificationAccessGranted(context: Context): Boolean {
-        val component = ComponentName(context, SmartUnblockNotificationListener::class.java)
-        val flat = Settings.Secure.getString(
-            context.contentResolver,
-            "enabled_notification_listeners",
-        ) ?: return false
-        return flat.split(":").any {
-            ComponentName.unflattenFromString(it) == component
-        }
-    }
-
-    fun notificationAccessIntent(): Intent =
-        Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
 
     /**
      * Fallback for devices/situations where the role request intent can't be

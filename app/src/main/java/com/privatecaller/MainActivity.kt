@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -19,25 +18,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.privatecaller.edition.Edition
 import com.privatecaller.ui.DialerScreen
 import com.privatecaller.ui.RecentsScreen
 import com.privatecaller.ui.SettingsScreen
-import com.privatecaller.ui.SmartUnblockScreen
 import com.privatecaller.ui.ViewModelFactory
 import com.privatecaller.ui.theme.PrivateCallerTheme
 
-private enum class Tab(val label: String, val icon: ImageVector) {
-    Recents("Recents", Icons.Filled.History),
-    Dialer("Dialer", Icons.Filled.Dialpad),
-    SmartUnblock("Unblock", Icons.Filled.Shield),
-    Settings("Settings", Icons.Filled.Settings),
-}
+/** A bottom-navigation destination. Editions can contribute extra tabs. */
+class NavTab(
+    val label: String,
+    val icon: ImageVector,
+    val content: @Composable (Modifier) -> Unit,
+)
 
 class MainActivity : ComponentActivity() {
 
@@ -54,7 +53,16 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AppRoot(factory: ViewModelFactory) {
-    var selected by remember { mutableStateOf(Tab.Recents) }
+    // Base tabs + any edition-specific tabs (SmartUnblock in the "full" edition).
+    val tabs = remember(factory) {
+        buildList {
+            add(NavTab("Recents", Icons.Filled.History) { RecentsScreen(viewModel(factory = factory), it) })
+            add(NavTab("Dialer", Icons.Filled.Dialpad) { DialerScreen(viewModel(factory = factory), it) })
+            addAll(Edition.extraTabs())
+            add(NavTab("Settings", Icons.Filled.Settings) { SettingsScreen(viewModel(factory = factory), it) })
+        }
+    }
+    var selected by remember { mutableIntStateOf(0) }
 
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -74,10 +82,10 @@ private fun AppRoot(factory: ViewModelFactory) {
     Scaffold(
         bottomBar = {
             NavigationBar {
-                Tab.entries.forEach { tab ->
+                tabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
-                        selected = selected == tab,
-                        onClick = { selected = tab },
+                        selected = selected == index,
+                        onClick = { selected = index },
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
                         label = { Text(tab.label) },
                     )
@@ -85,12 +93,6 @@ private fun AppRoot(factory: ViewModelFactory) {
             }
         }
     ) { padding ->
-        val content = Modifier.padding(padding)
-        when (selected) {
-            Tab.Recents -> RecentsScreen(viewModel(factory = factory), content)
-            Tab.Dialer -> DialerScreen(viewModel(factory = factory), content)
-            Tab.SmartUnblock -> SmartUnblockScreen(viewModel(factory = factory), content)
-            Tab.Settings -> SettingsScreen(viewModel(factory = factory), content)
-        }
+        tabs[selected].content(Modifier.padding(padding))
     }
 }

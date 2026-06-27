@@ -14,10 +14,12 @@ class SmartUnblockManager(
     private val monitoredAppDao: MonitoredAppDao,
     private val windowDao: UnblockWindowDao,
     private val now: () -> Long = System::currentTimeMillis,
-) {
+) : UnblockGate {
 
     /** True while any unblock window is still active. */
-    suspend fun isUnblockActive(): Boolean = windowDao.activeNow(now()) != null
+    override suspend fun isUnblockActive(): Boolean = windowDao.activeNow(now()) != null
+
+    override suspend fun activeLabel(): String? = activeWindow()?.triggerLabel
 
     suspend fun activeWindow(): UnblockWindow? = windowDao.activeNow(now())
 

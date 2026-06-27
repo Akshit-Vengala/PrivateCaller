@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// Release signing credentials, loaded from a git-ignored keystore.properties.
+// Absent on machines/CI without the keystore — release builds are then unsigned.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -25,9 +34,41 @@ android {
         buildConfigField("String", "GITHUB_REPO", "\"PrivateCaller\"")
     }
 
+    // Two editions of the app:
+    //  - full:     everything (SmartUnblock notification reading + in-app GitHub
+    //              updater). Sideload only; Play Protect flags these features.
+    //  - playstore: privacy-/policy-safe subset. NO SmartUnblock, NO in-app
+    //              installer, so the manifest declares none of the permissions
+    //              (notification listener / install packages) that get flagged.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("full") {
+            dimension = "edition"
+            // SmartUnblock + in-app updater live in src/full/ (code) and
+            // src/full/AndroidManifest.xml (permissions/service).
+        }
+        create("playstore") {
+            dimension = "edition"
+            // No SmartUnblock, no in-app updater — see src/playstore/.
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val storeName = keystoreProps.getProperty("storeFile")
+            if (storeName != null && rootProject.file(storeName).exists()) {
+                storeFile = rootProject.file(storeName)
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
