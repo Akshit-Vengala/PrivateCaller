@@ -33,6 +33,15 @@ object CallManager {
     private val _connectedAt = MutableStateFlow<Long?>(null)
     val connectedAt: StateFlow<Long?> = _connectedAt.asStateFlow()
 
+    /**
+     * Whether the current call supports hold. Exposed as a flow (rather than a
+     * one-shot query) because the platform often reports the HOLD capability a
+     * beat *after* the call connects via onDetailsChanged — observing it keeps
+     * the Hold button from popping in a second late.
+     */
+    private val _canHold = MutableStateFlow(false)
+    val canHold: StateFlow<Boolean> = _canHold.asStateFlow()
+
     /** Set by the InCallService so we can route audio / mute. */
     private var service: InCallService? = null
 
@@ -40,9 +49,16 @@ object CallManager {
         override fun onStateChanged(call: Call, newState: Int) {
             if (call == _call.value) {
                 _state.value = newState
+                _canHold.value = call.details.can(Call.Details.CAPABILITY_HOLD)
                 if (newState == Call.STATE_ACTIVE && _connectedAt.value == null) {
                     _connectedAt.value = System.currentTimeMillis()
                 }
+            }
+        }
+
+        override fun onDetailsChanged(call: Call, details: Call.Details) {
+            if (call == _call.value) {
+                _canHold.value = details.can(Call.Details.CAPABILITY_HOLD)
             }
         }
     }
@@ -61,6 +77,7 @@ object CallManager {
         @Suppress("DEPRECATION")
         val s = call.state
         _state.value = s
+        _canHold.value = call.details.can(Call.Details.CAPABILITY_HOLD)
         if (s == Call.STATE_ACTIVE) _connectedAt.value = System.currentTimeMillis()
     }
 
@@ -72,6 +89,7 @@ object CallManager {
             _muted.value = false
             _speaker.value = false
             _connectedAt.value = null
+            _canHold.value = false
         }
     }
 
@@ -85,12 +103,6 @@ object CallManager {
 
     fun hangup() {
         _call.value?.disconnect()
-    }
-
-    /** True if the current call supports hold. */
-    fun canHold(): Boolean {
-        val c = _call.value ?: return false
-        return c.details.can(Call.Details.CAPABILITY_HOLD)
     }
 
     fun toggleHold() {

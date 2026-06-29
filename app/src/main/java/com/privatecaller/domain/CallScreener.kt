@@ -36,7 +36,7 @@ class CallScreener(
 
         // Manual block list is authoritative — block even known contacts.
         if (blockList.isBlocked(number)) {
-            return ScreenDecision(false, ScreenOutcome.BLOCKED, "Blocked number", null)
+            return ScreenDecision(false, ScreenOutcome.BLOCKED_MANUAL, "Blocked number", null)
         }
 
         if (!settings.screeningEnabled) {
@@ -70,7 +70,7 @@ class CallScreener(
         return ScreenDecision(
             allow = false,
             outcome = ScreenOutcome.BLOCKED,
-            reason = settings.blockMessage,
+            reason = "Auto-blocked",
             displayName = null,
         )
     }
@@ -90,7 +90,7 @@ class CallScreener(
     /** Records the screened call for the Recents list (respecting log settings). */
     suspend fun log(number: String?, decision: ScreenDecision) {
         val settings = settingsStore.current()
-        if (decision.outcome == ScreenOutcome.BLOCKED && !settings.logBlockedCalls) return
+        if (!decision.allow && !settings.logBlockedCalls) return
         screenedCallDao.insert(
             ScreenedCall(
                 number = number ?: "Unknown",

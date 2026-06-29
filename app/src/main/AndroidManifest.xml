@@ -15,6 +15,16 @@
     <!-- Foreground notification for an active SmartUnblock window -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Proximity screen-off wake lock: blank the screen during a call when held to the ear -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!--
+        Heads-up incoming-call banner. As the default phone app (ROLE_DIALER)
+        this is auto-granted; it lets the OS show the full call screen when the
+        device is locked/off and a peeking Answer/Decline banner when unlocked.
+    -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
     <!--
         SmartUnblock (notification listener) and the in-app updater
         (INTERNET + REQUEST_INSTALL_PACKAGES + FileProvider) are declared only
@@ -89,6 +99,13 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.PrivateCaller" />
 
+        <!-- Per-number call history screen. -->
+        <activity
+            android:name=".ui.CallHistoryActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.PrivateCaller" />
+
         <!-- Full-screen UI for ongoing calls when we are the default phone app. -->
         <activity
             android:name=".ui.InCallActivity"
@@ -120,6 +137,14 @@
                 <action android:name="android.telecom.CallScreeningService" />
             </intent-filter>
         </service>
+
+        <!--
+            Receives Speaker / Mute / End-call taps from the ongoing-call
+            notification. Non-exported: only our own PendingIntents reach it.
+        -->
+        <receiver
+            android:name=".service.CallActionReceiver"
+            android:exported="false" />
 
         <!--
             The FileProvider (update APK) and the SmartUnblock notification

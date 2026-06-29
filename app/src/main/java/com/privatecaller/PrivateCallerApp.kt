@@ -5,6 +5,10 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import com.privatecaller.edition.Edition
+import com.privatecaller.service.BlockedCallNotifier
+import com.privatecaller.service.CallNotifier
+import com.privatecaller.service.IncomingCallNotifier
+import com.privatecaller.service.MissedCallNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,6 +24,10 @@ class PrivateCallerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        CallNotifier.createChannel(this)
+        IncomingCallNotifier.createChannel(this)
+        MissedCallNotifier.createChannel(this)
+        BlockedCallNotifier.createChannel(this)
         // SmartUnblock channel/seed/purge happen only in the "full" edition.
         Edition.onAppCreate(this, container, appScope)
         registerActivityLifecycleCallbacks(IconReconciler())

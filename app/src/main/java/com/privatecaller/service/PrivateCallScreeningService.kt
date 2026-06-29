@@ -42,6 +42,9 @@ class PrivateCallScreeningService : CallScreeningService() {
                 .build()
             respondToCall(callDetails, response)
             screener.log(number, decision)
+            if (!decision.allow) {
+                BlockedCallNotifier.show(this@PrivateCallScreeningService, number, decision.displayName, decision.outcome)
+            }
         }
     }
 }

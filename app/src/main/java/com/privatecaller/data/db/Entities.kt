@@ -56,7 +56,7 @@ data class ContactSimPref(
 )
 
 /** Outcome recorded for the app's own "Recents" list. */
-enum class ScreenOutcome { ALLOWED_CONTACT, ALLOWED_UNBLOCK, BLOCKED }
+enum class ScreenOutcome { ALLOWED_CONTACT, ALLOWED_UNBLOCK, BLOCKED, BLOCKED_MANUAL }
 
 /** A single incoming call that was screened. */
 @Entity(tableName = "screened_calls")

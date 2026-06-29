@@ -24,6 +24,9 @@ data class CallLogEntry(
     val type: CallType,
     val date: Long,
     val durationSec: Long,
+    // PhoneAccount id of the SIM the call used (CallLog.Calls.PHONE_ACCOUNT_ID),
+    // resolved to a SIM slot/label by SimManager where possible.
+    val phoneAccountId: String?,
     // Precomputed on the IO thread so list rows don't format numbers/durations
     // on the main thread while scrolling (libphonenumber formatting is slow).
     val displayNumber: String,
@@ -73,6 +76,7 @@ class CallLogRepository(private val context: Context) {
             CallLog.Calls.TYPE,
             CallLog.Calls.DATE,
             CallLog.Calls.DURATION,
+            CallLog.Calls.PHONE_ACCOUNT_ID,
         )
         val out = ArrayList<CallLogEntry>()
         // Pass the row limit as the provider's URI query-param, NOT as "LIMIT n"
@@ -97,6 +101,7 @@ class CallLogRepository(private val context: Context) {
             val iType = c.getColumnIndexOrThrow(CallLog.Calls.TYPE)
             val iDate = c.getColumnIndexOrThrow(CallLog.Calls.DATE)
             val iDur = c.getColumnIndexOrThrow(CallLog.Calls.DURATION)
+            val iAcct = c.getColumnIndex(CallLog.Calls.PHONE_ACCOUNT_ID)
             while (c.moveToNext()) {
                 val number = c.getString(iNum)
                 val durationSec = c.getLong(iDur)
@@ -108,6 +113,7 @@ class CallLogRepository(private val context: Context) {
                     type = mapType(c.getInt(iType)),
                     date = c.getLong(iDate),
                     durationSec = durationSec,
+                    phoneAccountId = if (iAcct >= 0) c.getString(iAcct) else null,
                     displayNumber = PhoneFormat.pretty(context, number),
                     displayDuration = formatDuration(durationSec),
                 )

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Ongoing-call notification body, kept deliberately short so the action row is
+    visible in the COLLAPSED notification (no expand needed). One caller line,
+    then three full-width, short pill buttons (Speaker / Mute / End) laid out
+    horizontally (icon beside label) so they're vertically short and wide.
+    Speaker/Mute get a subtle green tint when enabled; End is tinted red.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="6dp"
+    android:paddingVertical="2dp">
+
+    <TextView
+        android:id="@+id/notif_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:paddingTop="4dp">
+
+        <LinearLayout
+            android:id="@+id/action_speaker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingVertical="7dp"
+            android:background="@drawable/bg_notif_btn">
+            <ImageView
+                android:id="@+id/icon_speaker"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_notif_speaker"
+                android:tint="?android:attr/textColorPrimary"
+                android:contentDescription="@string/notif_speaker" />
+            <TextView
+                android:id="@+id/label_speaker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:textSize="12sp"
+                android:textColor="?android:attr/textColorPrimary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/action_mute"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingVertical="7dp"
+            android:background="@drawable/bg_notif_btn">
+            <ImageView
+                android:id="@+id/icon_mute"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_notif_mic"
+                android:tint="?android:attr/textColorPrimary"
+                android:contentDescription="@string/notif_mute" />
+            <TextView
+                android:id="@+id/label_mute"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:textSize="12sp"
+                android:textColor="?android:attr/textColorPrimary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/action_end"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingVertical="7dp"
+            android:background="@drawable/bg_notif_btn_end">
+            <ImageView
+                android:id="@+id/icon_end"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_notif_call_end"
+                android:tint="#EF5350"
+                android:contentDescription="@string/notif_end" />
+            <TextView
+                android:id="@+id/label_end"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:textSize="12sp"
+                android:textColor="#EF5350" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

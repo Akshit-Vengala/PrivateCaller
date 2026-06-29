@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Enabled (on) pill background for a toggle (Speaker/Mute) — solid green so a
+     white icon/label reads clearly even on a dark/grey notification. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="100dp" />
+    <solid android:color="#2E7D32" />
+</shape>

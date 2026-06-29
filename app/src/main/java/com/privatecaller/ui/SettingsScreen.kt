@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -98,11 +97,6 @@ fun SettingsScreen(viewModel: SettingsViewModel, modifier: Modifier = Modifier) 
                 checked = settings.logBlockedCalls,
                 onChange = viewModel::setLogBlocked,
             )
-            HorizontalDivider()
-
-            Text("Block message", style = MaterialTheme.typography.titleMedium)
-            BlockMessageField(settings.blockMessage, viewModel::setBlockMessage)
-
             HorizontalDivider()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -224,19 +218,3 @@ internal fun SwitchRow(
     }
 }
 
-@Composable
-private fun BlockMessageField(value: String, onCommit: (String) -> Unit) {
-    var text by remember(value) { mutableStateOf(value) }
-    LaunchedEffect(value) { text = value }
-
-    OutlinedTextField(
-        value = text,
-        onValueChange = {
-            text = it
-            onCommit(it)
-        },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        supportingText = { Text("Reported to the caller / system when a number is rejected.") },
-    )
-}

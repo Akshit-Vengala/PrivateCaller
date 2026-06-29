@@ -50,6 +50,22 @@ class SimManager(private val context: Context) {
         return info?.simSlotIndex
     }
 
+    /**
+     * Maps a call log's PHONE_ACCOUNT_ID (CallLog.Calls.PHONE_ACCOUNT_ID) to a
+     * SIM slot index. Matches it against the call-capable phone accounts' ids.
+     */
+    fun slotForAccountId(accountId: String?): Int? {
+        if (accountId.isNullOrBlank() || !hasPermission()) return null
+        val tm = context.getSystemService(TelecomManager::class.java) ?: return null
+        val accounts = runCatching { tm.callCapablePhoneAccounts }.getOrNull() ?: return null
+        val handle = accounts.firstOrNull { it.id == accountId } ?: return null
+        return slotForHandle(handle)
+    }
+
+    /** Human SIM label for a call log account id, e.g. "SIM 1", or null. */
+    fun labelForAccountId(accountId: String?): String? =
+        slotForAccountId(accountId)?.let { "SIM ${it + 1}" }
+
     /** The phone account (for placeCall) belonging to a given SIM slot, or null. */
     fun phoneAccountHandleForSlot(slot: Int): PhoneAccountHandle? {
         if (!hasPermission()) return null

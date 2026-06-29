@@ -46,10 +46,15 @@ android {
             dimension = "edition"
             // SmartUnblock + in-app updater live in src/full/ (code) and
             // src/full/AndroidManifest.xml (permissions/service).
+            // Custom incoming-call overlay popup (needs SYSTEM_ALERT_WINDOW,
+            // declared only in src/full/AndroidManifest.xml).
+            buildConfigField("boolean", "HAS_CALL_OVERLAY", "true")
         }
         create("playstore") {
             dimension = "edition"
             // No SmartUnblock, no in-app updater — see src/playstore/.
+            // No overlay either: keeps the Play APK free of SYSTEM_ALERT_WINDOW.
+            buildConfigField("boolean", "HAS_CALL_OVERLAY", "false")
         }
     }
 

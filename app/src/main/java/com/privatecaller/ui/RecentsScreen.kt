@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,15 +48,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.privatecaller.data.db.BlockedNumber
+import com.privatecaller.domain.CallAggregate
+import com.privatecaller.domain.CallFilter
 import com.privatecaller.domain.CallLogEntry
+import com.privatecaller.domain.CallLogGrouping
 import com.privatecaller.domain.CallType
+import com.privatecaller.domain.ContactHint
 import com.privatecaller.domain.ContactItem
 import com.privatecaller.domain.ContactSearch
+import com.privatecaller.domain.DateSection
 import com.privatecaller.domain.NumberMatch
 
 @Composable
@@ -63,9 +71,34 @@ fun RecentsScreen(viewModel: RecentsViewModel, modifier: Modifier = Modifier) {
     val contacts by viewModel.contacts.collectAsStateWithLifecycle()
     val blocked by viewModel.blockedNumbers.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf(CallFilter.ALL) }
     val call = rememberCallController()
+    val context = LocalContext.current
 
     val matches = remember(query, contacts) { ContactSearch.filter(contacts, query) }
+
+    val isUserBlocked: (CallLogEntry) -> Boolean = remember(blocked) {
+        { e -> e.number != null && blocked.any { NumberMatch.sameNumber(it.normalized, e.number) } }
+    }
+    // Index contacts by their last-10 digits so we can fill in the caller name /
+    // photo when the call log didn't cache one (matches NumberMatch's tolerance).
+    val contactIndex = remember(contacts) {
+        val map = HashMap<String, ContactItem>()
+        contacts.forEach { c ->
+            val key = NumberMatch.normalize(c.number).takeLast(10)
+            if (key.length >= 7) map.putIfAbsent(key, c)
+        }
+        map
+    }
+    val resolveContact: (CallLogEntry) -> ContactHint? = remember(contactIndex) {
+        { e ->
+            val key = NumberMatch.normalize(e.number).takeLast(10)
+            contactIndex[key]?.let { ContactHint(it.name, it.photoUri) }
+        }
+    }
+    val sections = remember(callLog, blocked, filter, contactIndex) {
+        CallLogGrouping.build(callLog, filter, isUserBlocked, resolveContact = resolveContact)
+    }
 
     Column(modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -89,25 +122,67 @@ fun RecentsScreen(viewModel: RecentsViewModel, modifier: Modifier = Modifier) {
         if (query.isNotEmpty()) {
             ContactResults(matches) { call(it.number) }
         } else {
+            FilterChips(filter) { filter = it }
             SetupBanner()
-            if (callLog.isEmpty()) {
-                EmptyState()
-            } else {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(callLog, key = { it.id }, contentType = { "callRow" }) { entry ->
-                        CallRow(
-                            entry = entry,
-                            blocked = blocked,
-                            onCall = { call(entry.number ?: "") },
-                            onBlock = { entry.number?.let { viewModel.block(it, entry.cachedName) } },
-                            onUnblock = { entry.number?.let { viewModel.unblock(it) } },
-                        )
-                        HorizontalDivider()
+            when {
+                callLog.isEmpty() -> EmptyState()
+                sections.isEmpty() -> NoFilterResults(filter)
+                else -> LazyColumn(Modifier.fillMaxSize()) {
+                    sections.forEach { sec ->
+                        item(key = "hdr-${sec.section}", contentType = "header") {
+                            SectionHeader(sec.section)
+                        }
+                        items(sec.items, key = { it.id }, contentType = { "agg" }) { agg ->
+                            AggregateRow(
+                                agg = agg,
+                                isUserBlocked = isUserBlocked,
+                                onOpen = { openCallHistory(context, agg.number ?: "", agg.name, agg.photoUri) },
+                                onCall = { call(agg.number ?: "") },
+                                onBlock = { agg.number?.let { viewModel.block(it, agg.name) } },
+                                onUnblock = { agg.number?.let { viewModel.unblock(it) } },
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun FilterChips(selected: CallFilter, onSelect: (CallFilter) -> Unit) {
+    val chips = listOf(
+        CallFilter.ALL to "All",
+        CallFilter.MISSED to "Missed",
+        CallFilter.CONTACTS to "Contacts",
+        CallFilter.BLOCKED to "Blocked",
+        CallFilter.AUTOBLOCKED to "Autoblocked",
+    )
+    LazyRow(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(chips, key = { it.first.name }) { (f, label) ->
+            FilterChip(selected = selected == f, onClick = { onSelect(f) }, label = { Text(label) })
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(section: DateSection) {
+    val label = when (section) {
+        DateSection.TODAY -> "Today"
+        DateSection.YESTERDAY -> "Yesterday"
+        DateSection.OLDER -> "Older"
+    }
+    Text(
+        label,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+    )
 }
 
 @Composable
@@ -151,28 +226,30 @@ private fun ContactResults(matches: List<ContactItem>, onCall: (ContactItem) -> 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CallRow(
-    entry: CallLogEntry,
-    blocked: List<BlockedNumber>,
+private fun AggregateRow(
+    agg: CallAggregate,
+    isUserBlocked: (CallLogEntry) -> Boolean,
+    onOpen: () -> Unit,
     onCall: () -> Unit,
     onBlock: () -> Unit,
     onUnblock: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val isBlocked = remember(entry.number, blocked) {
-        entry.number != null && blocked.any { NumberMatch.sameNumber(it.normalized, entry.number) }
-    }
-    val title = entry.cachedName?.takeIf { it.isNotBlank() } ?: entry.displayNumber
+    val entry = agg.latest
+    val blockedUser = remember(entry, agg) { isUserBlocked(entry) }
+    val statusLabel = statusLabelFor(entry, isUserBlocked)
+    val (_, typeIcon, typeTint) = callTypeStyle(entry.type)
 
-    val (typeLabel, typeIcon, typeTint) = callTypeStyle(entry.type)
+    val baseTitle = agg.name?.takeIf { it.isNotBlank() } ?: entry.displayNumber
+    val title = if (agg.count > 1) "$baseTitle (${agg.count})" else baseTitle
+
     val relative = remember(entry.date) {
         DateUtils.getRelativeTimeSpanString(
             entry.date, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS,
         ).toString()
     }
-    val supporting = remember(entry.id, isBlocked, typeLabel, relative) {
+    val supporting = remember(entry.id, statusLabel, relative) {
         listOfNotNull(
-            if (isBlocked) "$typeLabel · 🚫 Blocked" else typeLabel,
+            statusLabel,
             entry.displayDuration.takeIf { it.isNotEmpty() },
             relative,
         ).joinToString(" · ")
@@ -183,12 +260,10 @@ private fun CallRow(
     Box {
         ListItem(
             modifier = Modifier.combinedClickable(
-                onClick = {
-                    openContactDetail(context, entry.cachedName, entry.number ?: "", entry.cachedPhotoUri, -1L)
-                },
+                onClick = onOpen,
                 onLongClick = { menuOpen = true },
             ),
-            leadingContent = { Avatar(entry.cachedName, entry.number, photoUri = entry.cachedPhotoUri) },
+            leadingContent = { Avatar(agg.name, agg.number, photoUri = agg.photoUri) },
             headlineContent = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             supportingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -212,7 +287,7 @@ private fun CallRow(
                 text = { Text("Call") },
                 onClick = { menuOpen = false; onCall() },
             )
-            if (isBlocked) {
+            if (blockedUser) {
                 DropdownMenuItem(
                     text = { Text("Unblock number") },
                     onClick = { menuOpen = false; onUnblock() },
@@ -227,12 +302,12 @@ private fun CallRow(
     }
 }
 
-private val CallGreen = Color(0xFF2E7D32)
-private val CallRed = Color(0xFFC62828)
-private val CallGrey = Color(0xFF757575)
+internal val CallGreen = Color(0xFF2E7D32)
+internal val CallRed = Color(0xFFC62828)
+internal val CallGrey = Color(0xFF757575)
 
-/** Label + direction icon + tint for a call-log entry. */
-private fun callTypeStyle(type: CallType): Triple<String, ImageVector, Color> = when (type) {
+/** Label + direction icon + tint for a call-log entry's raw type. */
+internal fun callTypeStyle(type: CallType): Triple<String, ImageVector, Color> = when (type) {
     CallType.INCOMING -> Triple("Incoming", Icons.AutoMirrored.Filled.CallReceived, CallGreen)
     CallType.OUTGOING -> Triple("Outgoing", Icons.AutoMirrored.Filled.CallMade, CallGreen)
     CallType.MISSED -> Triple("Missed", Icons.AutoMirrored.Filled.CallMissed, CallRed)
@@ -240,6 +315,30 @@ private fun callTypeStyle(type: CallType): Triple<String, ImageVector, Color> = 
     CallType.BLOCKED -> Triple("Blocked", Icons.Filled.Block, CallRed)
     CallType.VOICEMAIL -> Triple("Voicemail", Icons.Filled.Voicemail, CallGrey)
     CallType.OTHER -> Triple("Call", Icons.Filled.Call, CallGrey)
+}
+
+/** User-facing status: "Blocked" (manual), "Autoblock" (screening), else the direction. */
+internal fun statusLabelFor(entry: CallLogEntry, isUserBlocked: (CallLogEntry) -> Boolean): String = when {
+    isUserBlocked(entry) -> "Blocked"
+    CallLogGrouping.isAutoBlocked(entry, isUserBlocked) -> "Autoblock"
+    else -> callTypeStyle(entry.type).first
+}
+
+@Composable
+private fun NoFilterResults(filter: CallFilter) {
+    val what = when (filter) {
+        CallFilter.ALL -> "calls"
+        CallFilter.MISSED -> "missed calls"
+        CallFilter.CONTACTS -> "calls from contacts"
+        CallFilter.BLOCKED -> "blocked calls"
+        CallFilter.AUTOBLOCKED -> "auto-blocked calls"
+    }
+    Column(
+        Modifier.fillMaxWidth().padding(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("No $what", style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 @Composable

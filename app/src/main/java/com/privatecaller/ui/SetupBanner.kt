@@ -24,6 +24,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import com.privatecaller.BuildConfig
 import com.privatecaller.edition.Edition
 
 /**
@@ -41,6 +45,10 @@ fun SetupBanner(modifier: Modifier = Modifier) {
     // Notification access only matters for SmartUnblock (the "full" edition);
     // the playstore Edition reports it granted so this card never appears.
     var notifAccess by remember { mutableStateOf(Edition.isNotificationAccessGranted(context)) }
+    // Overlay popup is a full-edition feature; the playstore build treats it as
+    // satisfied so the card never shows there.
+    fun overlayOk() = !BuildConfig.HAS_CALL_OVERLAY || Settings.canDrawOverlays(context)
+    var overlayGranted by remember { mutableStateOf(overlayOk()) }
 
     // Roles MUST be requested for a result, otherwise the system dialog
     // silently never appears.
@@ -63,13 +71,14 @@ fun SetupBanner(modifier: Modifier = Modifier) {
                 dialerHeld = Setup.isDialerRoleHeld(context)
                 roleHeld = Setup.isScreeningRoleHeld(context)
                 notifAccess = Edition.isNotificationAccessGranted(context)
+                overlayGranted = overlayOk()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    if (dialerHeld && roleHeld && notifAccess) return
+    if (dialerHeld && roleHeld && notifAccess && overlayGranted) return
 
     Column(
         modifier = modifier
@@ -122,6 +131,19 @@ fun SetupBanner(modifier: Modifier = Modifier) {
                 body = "Lets SmartUnblock detect delivery & ride notifications and open call windows.",
                 action = "Grant",
             ) { Edition.openNotificationAccessSettings(context) }
+        }
+        if (!overlayGranted) {
+            SetupCard(
+                title = "Show calls over other apps",
+                body = "Lets PrivateCaller pop a call banner with Answer/Decline over whatever app you're using, instead of a plain notification.",
+                action = "Allow",
+            ) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}"),
+                )
+                runCatching { context.startActivity(intent) }
+            }
         }
     }
 }

@@ -205,11 +205,6 @@ private fun ContactDetailScreen(
             Spacer(Modifier.size(24.dp))
             HorizontalDivider()
 
-            if (isSaved) {
-                ListRowButton("Edit name / photo in Contacts") { editContact(context, contactId) }
-                HorizontalDivider()
-            }
-
             // Per-contact outgoing SIM.
             if (sims.size >= 2) {
                 Spacer(Modifier.size(12.dp))
@@ -282,19 +277,6 @@ private fun SimOption(label: String, selected: Boolean, onSelect: () -> Unit) {
     ) {
         RadioButton(selected = selected, onClick = onSelect)
         Text(label, Modifier.padding(start = 8.dp))
-    }
-}
-
-@Composable
-private fun ListRowButton(text: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .selectable(selected = false, onClick = onClick)
-            .padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

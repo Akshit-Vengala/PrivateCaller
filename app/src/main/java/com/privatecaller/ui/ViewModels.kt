@@ -109,7 +109,6 @@ class SettingsViewModel(container: AppContainer) : ViewModel() {
     // close the app. It's reconciled when the app goes to the background.
     fun setScreening(value: Boolean) = viewModelScope.launch { store.setScreeningEnabled(value) }
     fun setSmartUnblock(value: Boolean) = viewModelScope.launch { store.setSmartUnblockEnabled(value) }
-    fun setBlockMessage(value: String) = viewModelScope.launch { store.setBlockMessage(value) }
     fun setLogBlocked(value: Boolean) = viewModelScope.launch { store.setLogBlockedCalls(value) }
 
     /** Toggle screening for a single SIM slot (resolving the "all" default first). */
